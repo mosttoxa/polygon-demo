@@ -4,7 +4,6 @@ import { renderField, logEvent } from "./fieldRenderer.js";
 import { showDamagePopup } from "./damagePopup.js";
 import { resolveCombat } from "./combat.js";
 import { handleRightClick } from "./rightClickHandler.js";
-import { applyEventEffect } from "./eventEffects.js";
 import { createHandleCellClick } from "./eventHandlers.js";
 import { initGame } from "./initGame.js"; // новий модуль
 
@@ -113,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
     yellowCells,
     eventCells,
     portalCells
-  });
+  }, logContainer);
 
   renderField({
     gameFieldElement: gameField,

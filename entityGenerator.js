@@ -8,7 +8,7 @@ export function generateEntities(numRows, numCols, playerPosition, {
   yellowCells,
   eventCells,
   portalCells
-}) {
+}, logContainer) {
   const monsters = [];
   //monsters.length = 1;
   bonusCells.clear();
@@ -47,54 +47,50 @@ export function generateEntities(numRows, numCols, playerPosition, {
   }
 
   const eventDefinitions = [
-    {
-      effect: () => {
-        logEvent("Подія: Тіло біона1");
-        stats.energy = Math.min(stats.energyMax, stats.energy + 10);
-      },
-      label: "Тіло біона1 (+10 енергії)"
+  {
+    effect(logContainer, stats, monsters, bonusCells) {
+      stats.energy = Math.min(stats.energyMax, stats.energy + 10);
+      logEvent("Подія: Тіло біона (+10 енергії)", logContainer);
     },
-    {
-      effect: () => {
-        const delta = Math.random() < 0.5 ? -5 : 5;
-        logEvent("Подія: Невідома печера");
-        stats.energy = Math.max(0, Math.min(stats.energyMax, stats.energy + delta));
-      },
-      label: "Невідома печера (+/-5 енергії)"
+    label: "Тіло біона (+10 енергії)"
+  },
+  {
+    effect(logContainer, stats) {
+      const delta = Math.random() < 0.5 ? -5 : 5;
+      stats.energy = Math.max(0, Math.min(stats.energyMax, stats.energy + delta));
+      logEvent(`Подія: Невідома печера (${delta > 0 ? "+" : ""}${delta} енергії)`, logContainer);
     },
-    {
-      effect: () => {
-        logEvent("Подія: Трясовина");
-        stats.energy = 0;
-        stats.move = 0;
-        stats.attack = 0;
-      },
-      label: "Трясовина (всі характеристики 0)"
+    label: "Невідома печера (+/-5 енергії)"
+  },
+  {
+    effect(logContainer, stats) {
+      stats.energy = 0;
+      stats.move = 0;
+      stats.attack = 0;
+      logEvent("Подія: Трясовина (всі характеристики 0)", logContainer);
     },
-    {
-      effect: () => {
-        logEvent("Подія: Сказ");
-        for (const m of monsters) m.damage += 3;
-      },
-      label: "Сказ (+3 до атаки всім монстрам)"
+    label: "Трясовина (всі характеристики 0)"
+  },
+  {
+    effect(logContainer, stats, monsters) {
+      for (const m of monsters) m.damage += 3;
+      logEvent("Подія: Сказ (+3 до атаки всім монстрам)", logContainer);
     },
-    {
-      effect: () => {
-        logEvent("Подія: Осяяння");
-        for (let i = 0; i < 7; i++) {
-          let idx;
-          do {
-            idx = Math.floor(Math.random() * totalCells);
-          } while (
-            bonusCells.has(idx) ||
-            yellowCells.has(idx) ||
-            eventCells.has(idx)
-          );
-          bonusCells.add(idx);
-        }
-      },
-      label: "Осяяння (+7 зелених клітин)"
-    }
+    label: "Сказ (+3 до атаки всім монстрам)"
+  },
+  {
+    effect(logContainer, stats, monsters, bonusCells) {
+      for (let i = 0; i < 7; i++) {
+        let idx;
+        do {
+          idx = Math.floor(Math.random() * totalCells);
+        } while (bonusCells.has(idx));
+        bonusCells.add(idx);
+      }
+      logEvent("Подія: Осяяння (+7 бонусних клітин)", logContainer);
+    },
+    label: "Осяяння (+7 бонусних клітин)"
+  }
   ];
 
   for (const ev of eventDefinitions) {
@@ -107,7 +103,8 @@ export function generateEntities(numRows, numCols, playerPosition, {
       yellowCells.has(index) ||
       eventCells.has(index)
     );
-    eventCells.set(index, ev);
+    eventCells.set(index, () => ev.effect(logContainer, stats, monsters, bonusCells));
+
   }
 
   for (let i = 0; i < 3; i++) {

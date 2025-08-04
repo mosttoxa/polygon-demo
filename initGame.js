@@ -5,7 +5,6 @@ import { renderField } from "./fieldRenderer.js";
 import { rollDice, selectedDice } from "./dice.js";
 import { updateStats } from "./playerStats.js";
 
-
 export function initGame({
   numRows,
   numCols,
@@ -17,7 +16,7 @@ export function initGame({
   eventCells,
   portalCells,
   turnRef
-}) {
+}, logContainer) {
   // Скидання лічильника ходу
   
   //document.getElementById("turn-counter").textContent = turnRef.value;
@@ -32,7 +31,7 @@ export function initGame({
       yellowCells,
       eventCells,
       portalCells
-    });
+    }, logContainer);
 
   // Запис нових монстрів
   monstersRef.value = monsters;

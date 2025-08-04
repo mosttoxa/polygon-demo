@@ -1,5 +1,4 @@
 import { randomStatKey } from "./utils.js";
-import { applyEventEffect } from "./eventEffects.js";
 import { resolveCombat } from "./combat.js";
 import { renderField, logEvent } from "./fieldRenderer.js";
 import { updateStats } from "./playerStats.js";
@@ -36,9 +35,13 @@ export function createHandleCellClick({
     }
 
     if (eventCells.has(target)) {
-      const type = eventCells.get(target);
-      applyEventEffect(type, stats, monstersRef, bonusCells, logContainer);
-      eventCells.delete(target);
+  const effectFunction = eventCells.get(target);
+  if (typeof effectFunction === "function") {
+    effectFunction(); // викликаємо збережену функцію
+  } else {
+    logEvent("Невідома подія", logContainer);
+  }
+  eventCells.delete(target);
     } else if (bonusCells.has(target)) {
       const key = randomStatKey();
       stats[key] = Math.min(stats[key + "Max"], stats[key] + 1);
