@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="uk">
+
 <head>
   <meta charset="UTF-8">
   <title>Полігон – демо</title>
@@ -12,16 +13,19 @@
       margin: 0;
       font-family: sans-serif;
     }
+
     #left-panel {
       flex: 3;
       padding: 20px;
     }
+
     #right-panel {
       flex: 1;
       padding: 20px;
       border-left: 1px solid #ccc;
       background-color: #f9f9f9;
     }
+
     #game-field {
       margin-top: 20px;
       display: grid;
@@ -29,6 +33,7 @@
       grid-template-rows: repeat(13, 40px);
       gap: 1px;
     }
+
     #game-field div {
       width: 40px;
       height: 40px;
@@ -39,10 +44,12 @@
       font-size: 20px;
       cursor: pointer;
     }
+
     #stats {
       margin-top: 10px;
       font-weight: bold;
     }
+
     #character-inventory {
       margin-top: 20px;
       display: flex;
@@ -50,14 +57,22 @@
       gap: 20px;
       font-size: 14px;
     }
-    .equipment, .backpack, .abilities {
+
+    .equipment,
+    .backpack,
+    .abilities {
       border: 1px solid #aaa;
       padding: 10px;
     }
-    .equipment div, .backpack div, .abilities div {
+
+    .equipment div,
+    .backpack div,
+    .abilities div {
       margin: 5px 0;
     }
-    .backpack .slot, .abilities .slot {
+
+    .backpack .slot,
+    .abilities .slot {
       width: 30px;
       height: 30px;
       background-color: #f0f0f0;
@@ -65,6 +80,7 @@
       display: inline-block;
       margin-right: 5px;
     }
+
     .dice {
       display: inline-block;
       width: 30px;
@@ -74,28 +90,35 @@
       line-height: 30px;
       margin: 0 5px;
     }
+
     #dice-container {
       margin-top: 10px;
     }
+
     .opened {
       background-color: #bfc;
     }
+
     .opened::after {
       content: ".";
       color: green;
       font-size: 24px;
     }
+
     .monster {
       background-color: #f88 !important;
     }
+
     .bonus {
       background-color: #8f8 !important;
     }
+
     .selected-dice {
       border: 2px solid green;
     }
   </style>
 </head>
+
 <body>
   <div id="left-panel">
     <h1>Полігон: демо</h1>
@@ -114,7 +137,7 @@
       <button id="roll-button">Кинути кубики</button>
 
       <button id="end-turn-button">Завершити хід</button>
->
+      >
     </div>
 
     <div id="game-field"></div>
@@ -140,10 +163,9 @@
       <div class="abilities">
         <strong>Енергоприйоми:</strong><br>
         <div>Щит: <span id="special-shield">0</span></div>
-<div>Ривок: <span id="special-dash">0</span></div>
-<div>Удар: <span id="special-strike">0</span></div>
-<div>Відновлення: <span id="special-recover">0</span></div>
-
+        <div>Ривок: <span id="special-dash">0</span></div>
+        <div>Удар: <span id="special-strike">0</span></div>
+        <div>Відновлення: <span id="special-recover">0</span></div>
       </div>
       <div id="combat-log" style="
   max-height: 120px;
@@ -156,10 +178,20 @@
   border: 1px solid #333;
   border-radius: 4px;
 ">
-  <b>Журнал бою:</b>
-</div>
+        <b>Журнал бою:</b>
+      </div>
+
 
     </div>
   </div>
+
+  <div id="popup-question" class="popup" style="display:block;" data-shown="false">
+  <p>Ну як тобі на полігоні, біончику? Подобається?</p>
+  <button data-answer="yes">Так</button>
+  <button data-answer="no">Ні</button>
+  <button data-answer="skip">Не хочу відповідати</button>
+</div>
+
+  
 </body>
 </html>

@@ -1,4 +1,4 @@
-import { stats } from './playerStats.js';
+// fieldRenderer.js
 
 export function renderField({
   gameFieldElement,
@@ -9,7 +9,10 @@ export function renderField({
   yellowCells,
   eventCells,
   portalCells,
-  playerPosition
+  playerPosition,
+  stats,
+  turnRef,
+  logContainer
 }) {
   document.querySelectorAll("#game-field div").forEach(cell => {
     const index = parseInt(cell.dataset.index);
@@ -37,6 +40,8 @@ export function renderField({
       cell.textContent = "🔸";
     }
   });
+
+  
 }
 
 export function logEvent(text, logContainer) {

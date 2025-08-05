@@ -55,7 +55,9 @@ export function initGame({
     yellowCells: y,
     eventCells: e,
     portalCells: p,
-    playerPosition: playerPositionRef.value
+    playerPosition: playerPositionRef.value,
+    turnRef,         // ✅ Додано
+    logContainer
   });
 
   // Оновлення статистики
