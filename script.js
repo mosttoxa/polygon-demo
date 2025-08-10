@@ -6,14 +6,14 @@ import { resolveCombat } from "./combat.js";
 import { handleRightClick } from "./rightClickHandler.js";
 import { createHandleCellClick } from "./eventHandlers.js";
 import { initGame } from "./initGame.js"; // новий модуль
-import { setupPopupQuestion } from "./popupQuestion.js";
-
+//import { setupPopupQuestion } from "./popupQuestion.js";
+import { showQuestionIfNeeded } from "./popupQuestion.js";
 
 
 document.addEventListener("DOMContentLoaded", () => {
   const gameField = document.getElementById("game-field");
   const logContainer = document.getElementById("combat-log");
-  setupPopupQuestion(logContainer);
+  showQuestionIfNeeded(logContainer);
   const numRows = 13;
   const numCols = 13;
   //let turn = 1;
@@ -76,55 +76,54 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   function endTurn() {
-    if (!diceUsed) return alert("Розподіліть 2 кубики!");
-    turnRef.value++;
-    document.getElementById("turn-counter").textContent = turnRef.value;
-    diceUsed = false;
-    selectedDice[0] = false;
-    selectedDice[1] = false;
-    selectedDice[2] = false;
-    document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
-    rollDice();
-    // Попап (перевірка тільки на першому ході)
-  const popup = document.getElementById("popup-question");
-  console.log("TURN REF:", turnRef?.value, "SHOWN:", popup?.dataset.shown);
+  if (!diceUsed) return alert("Розподіліть 2 кубики!");
 
-  if (popup && turnRef?.value === 2 && !popup.dataset.shown) {
-    popup.style.display = "block";
-    popup.dataset.shown = "true";
+  turnRef.value++;
+  document.getElementById("turn-counter").textContent = turnRef.value;
 
-    const buttons = popup.querySelectorAll("button");
-    buttons[0].addEventListener("click", () => {
-      stats.energy += 1;
-      logEvent("Ти відповів: Так! +1 до енергії", logContainer);
-      popup.style.display = "none";
-    });
-    buttons[1].addEventListener("click", () => {
-      stats.attack += 1;
-      logEvent("Ти відповів: Ні! +1 до атаки", logContainer);
-      popup.style.display = "none";
-    });
-    buttons[2].addEventListener("click", () => {
-      stats.move += 1;
-      logEvent("Ти відповів: Не хочу відповідати! +1 до ходу", logContainer);
-      popup.style.display = "none";
-    });
-  }
-    renderField({
-      gameFieldElement: gameField,
-      numRows,
-      numCols,
-      monsters: monstersRef.value,
-      bonusCells,
-      yellowCells,
-      eventCells,
-      portalCells,
-      playerPosition: playerPositionRef.value,
-      turnRef,         // ✅ Додано
-      logContainer  
-    });
-    updateStats(turnRef.value);
-  }
+  diceUsed = false;
+  selectedDice[0] = selectedDice[1] = selectedDice[2] = false;
+  document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
+
+  rollDice();
+
+  // покажемо попап, якщо треба
+  showQuestionIfNeeded({
+    turnRef,
+    stats,
+    logContainer,
+    onUpdate: () => {
+      // коли гравець натисне кнопку у попапі — оновимо UI
+      updateStats(turnRef.value);
+      renderField({
+        gameFieldElement: gameField,
+        numRows,
+        numCols,
+        monsters: monstersRef.value,
+        bonusCells,
+        yellowCells,
+        eventCells,
+        portalCells,
+        playerPosition: playerPositionRef.value,
+        // (без попап-логіки!)
+      });
+    }
+  });
+
+  // стандартний рендер ходу (якщо попап не показався — поле одразу перерендериться)
+  renderField({
+    gameFieldElement: gameField,
+    numRows,
+    numCols,
+    monsters: monstersRef.value,
+    bonusCells,
+    yellowCells,
+    eventCells,
+    portalCells,
+    playerPosition: playerPositionRef.value,
+  });
+  updateStats(turnRef.value);
+}
 
   document.getElementById("roll-button").addEventListener("click", () => {
     rollDice();
