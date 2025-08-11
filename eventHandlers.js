@@ -55,25 +55,22 @@ export function createHandleCellClick({
       logEvent(`Біон отримав ${delta > 0 ? "+2" : "-2"} до ${key}`, logContainer);
     }
 
-    monstersRef.value = resolveCombat(
-  playerPositionRef.value,
-  monstersRef.value,
+    const alive = resolveCombat({
+  playerPosition: playerPositionRef.value,
+  monstersRef,
+  stats,
   logContainer
-);
+});
 
-
-
-    renderField({
+renderField({
   gameFieldElement: renderContext.gameFieldElement,
   numRows: renderContext.numRows,
   numCols: renderContext.numCols,
-  monsters: monstersRef.value,
-  bonusCells,
-  yellowCells,
-  eventCells,
-  portalCells,
+  monsters: alive,                    // ← рендеримо актуальний список
+  bonusCells, yellowCells, eventCells, portalCells,
   playerPosition: playerPositionRef.value
 });
+
 
 
     updateStats();

@@ -8,6 +8,7 @@ import { createHandleCellClick } from "./eventHandlers.js";
 import { initGame } from "./initGame.js"; // новий модуль
 //import { setupPopupQuestion } from "./popupQuestion.js";
 import { showQuestionIfNeeded } from "./popupQuestion.js";
+import { moveMonstersRandom } from "./monstersAI.js";
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -22,6 +23,8 @@ document.addEventListener("DOMContentLoaded", () => {
   window.turnRef = turnRef;
   
   const playerPositionRef = { value: Math.floor((numRows * numCols) / 2) };
+window.playerPositionRef = playerPositionRef; // ← fallback
+
   const monstersRef = { value: [] };
   const bonusCells = new Set();
   const yellowCells = new Set();
@@ -75,7 +78,8 @@ document.addEventListener("DOMContentLoaded", () => {
     updateStats(turnRef.value);
   });
 
-  function endTurn() {
+  
+function endTurn() {
   if (!diceUsed) return alert("Розподіліть 2 кубики!");
 
   turnRef.value++;
@@ -85,48 +89,54 @@ document.addEventListener("DOMContentLoaded", () => {
   selectedDice[0] = selectedDice[1] = selectedDice[2] = false;
   document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
 
-  rollDice();
+  rollDice(logContainer);
 
-  // покажемо попап, якщо треба
   showQuestionIfNeeded({
     turnRef,
     stats,
     logContainer,
+    playerPositionRef,
+    numRows,
+    numCols,
     onUpdate: () => {
-      // коли гравець натисне кнопку у попапі — оновимо UI
+      // легкий апдейт UI прямо під час попапу (не обов’язково)
       updateStats(turnRef.value);
       renderField({
         gameFieldElement: gameField,
-        numRows,
-        numCols,
+        numRows, numCols,
         monsters: monstersRef.value,
-        bonusCells,
-        yellowCells,
-        eventCells,
-        portalCells,
-        playerPosition: playerPositionRef.value,
-        // (без попап-логіки!)
+        bonusCells, yellowCells, eventCells, portalCells,
+        playerPosition: playerPositionRef.value
       });
+    },
+    afterPopup: () => {
+      // ← все, що має статись ПІСЛЯ попапа і ДО початку нового ходу
+      moveMonstersRandom({ monstersRef, numRows, numCols, playerPositionRef });
+
+      moveMonstersRandom({ monstersRef, numRows, numCols, playerPositionRef });
+
+const alive = resolveCombat({
+  playerPosition: playerPositionRef.value,
+  monstersRef,
+  stats,
+  logContainer
+});
+
+renderField({
+  gameFieldElement: gameField,
+  numRows, numCols,
+  monsters: alive,
+  bonusCells, yellowCells, eventCells, portalCells,
+  playerPosition: playerPositionRef.value
+});
+
+      updateStats(turnRef.value);
     }
   });
-
-  // стандартний рендер ходу (якщо попап не показався — поле одразу перерендериться)
-  renderField({
-    gameFieldElement: gameField,
-    numRows,
-    numCols,
-    monsters: monstersRef.value,
-    bonusCells,
-    yellowCells,
-    eventCells,
-    portalCells,
-    playerPosition: playerPositionRef.value,
-  });
-  updateStats(turnRef.value);
 }
 
   document.getElementById("roll-button").addEventListener("click", () => {
-    rollDice();
+    rollDice(logContainer);
   });
 
   document.getElementById("end-turn-button").addEventListener("click", () => {

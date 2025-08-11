@@ -23,7 +23,12 @@ export function generateEntities(numRows, numCols, playerPosition, {
     do {
       index = Math.floor(Math.random() * totalCells);
     } while (index === playerPosition);
-    monsters.push({ pos: index, hp: 10, damage: 3 });
+    monsters.push({
+  pos: index,
+  hp: 10,
+  damage: 3,
+  speed: Math.random() < 0.6 ? 1 : 2   // 60% = 1 крок, 40% = 2 кроки
+});
   }
 
   for (let i = 0; i < 10; i++) {

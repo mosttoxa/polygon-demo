@@ -43,7 +43,7 @@ export function initGame({
   document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
 
   // Новий кидок
-  rollDice();
+  rollDice(logContainer);
 
   // Візуалізація поля
   renderField({

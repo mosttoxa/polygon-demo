@@ -1,57 +1,46 @@
 // dice.js
-import { updateStats } from './playerStats.js';
-import { stats } from './playerStats.js';
+import { stats, updateStats } from "./playerStats.js";
+import { logEvent } from "./fieldRenderer.js";
 
 export let currentDice = [0, 0, 0];
 export let selectedDice = [false, false, false];
-export let diceUsed = false;
 
-export function rollDice(stats, updateStats, logEvent) {
+export function rollDice(logContainer) {
   for (let i = 0; i < 3; i++) {
     currentDice[i] = Math.floor(Math.random() * 6) + 1;
-    const dieEl = document.getElementById(`dice${i + 1}`);
-    dieEl.textContent = currentDice[i];
-    dieEl.classList.remove("selected-dice");
+    const el = document.getElementById(`dice${i + 1}`);
+    if (el) {
+      el.textContent = currentDice[i];
+      el.classList.remove("selected-dice");
+    }
   }
-
   selectedDice = [false, false, false];
-  diceUsed = false;
 
-  const combo = currentDice.slice().sort().join("");
-  if (combo === "123") {
+  // --- комбінації ---
+  // Підстрахуємося, якщо хтось десь обнулив specialMoves
+  if (!stats.specialMoves) {
+    stats.specialMoves = { shield: 0, dash: 0, strike: 0, recover: 0 };
+  }
+
+  const sorted = [...currentDice].sort().join("");
+  if (sorted === "123") {
     stats.specialMoves.shield++;
-    logEvent("Комбінація 123 — +1 до Щита");
-  } else if (combo === "234") {
+    logEvent("Комбінація 123 — +1 до Щита", logContainer);
+  } else if (sorted === "234") {
     stats.specialMoves.dash++;
-    logEvent("Комбінація 234 — +1 до Ривка (хід)");
-  } else if (combo === "345") {
+    logEvent("Комбінація 234 — +1 до Ривка (хід)", logContainer);
+  } else if (sorted === "345") {
     stats.specialMoves.strike++;
-    logEvent("Комбінація 345 — +1 до Удару (атака)");
-  } else if (combo === "456") {
+    logEvent("Комбінація 345 — +1 до Удару (атака)", logContainer);
+  } else if (sorted === "456") {
     stats.specialMoves.recover++;
-    logEvent("Комбінація 456 — +1 до Відновлення (енергія)");
+    logEvent("Комбінація 456 — +1 до Відновлення (енергія)", logContainer);
   } else if (currentDice[0] === currentDice[1] && currentDice[1] === currentDice[2]) {
-    stats.energy = Math.min(stats.energyMax, stats.energy + currentDice[0]);
-    logEvent(`Випала трійка ${currentDice[0]} — +${currentDice[0]} до енергії`);
-  }
-  
-}
-
-export function assignDiceToStat(key, stats, updateStats) {
-  const unassigned = selectedDice.findIndex(sel => !sel);
-  if (unassigned === -1) return;
-
-  const value = currentDice[unassigned];
-  if (key === "move") stats.move += value;
-  if (key === "attack") stats.attack += value;
-  if (key === "energy") stats.energy = Math.min(stats.energyMax, stats.energy + value);
-
-  selectedDice[unassigned] = true;
-  document.getElementById(`dice${unassigned + 1}`).classList.add("selected-dice");
-
-  if (selectedDice.filter(v => v).length >= 2) {
-    diceUsed = true;
+    // трійка однакових
+    const v = currentDice[0];
+    stats.energy = Math.min(stats.energyMax, stats.energy + v);
+    logEvent(`Випала трійка ${v} — +${v} до енергії`, logContainer);
   }
 
-  updateStats(turnRef.value);
+  updateStats(); // щоб одразу побачити +1 до прийомів/енергії
 }

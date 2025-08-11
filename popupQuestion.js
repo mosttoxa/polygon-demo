@@ -42,45 +42,41 @@ const QUESTION_CONFIG = {
 };
 
 // показати попап, якщо для цього ходу є конфіг і його ще не показували
-export function showQuestionIfNeeded({ turnRef, stats, logContainer, onUpdate, playerPositionRef, numRows, numCols }) {
-  const t = turnRef?.value;
-  const cfg = QUESTION_CONFIG[t];
-  if (!cfg) return;
-
+export function showQuestionIfNeeded({
+  turnRef,
+  stats,
+  logContainer,
+  playerPositionRef,
+  numRows,
+  numCols,
+  onUpdate,     // існуючий колбек для миттєвого UI-апдейту
+  afterPopup    // НОВО: те, що треба зробити після попапа (рух монстрів тощо)
+}) {
   const popup = document.getElementById("popup-question");
-  if (!popup) return;
+  const needPopup = (turnRef?.value === 5 || turnRef?.value === 10 || turnRef?.value === 15);
 
-  // якщо вже показували на цьому ході — вийти
-  if (popup.dataset.shown === String(t)) return;
+  if (!popup || !needPopup) {
+    // попапа немає — одразу продовжуємо цикл ходу
+    afterPopup && afterPopup();
+    return;
+  }
 
-  // намалюємо чистий контент і покажемо
-  popup.innerHTML = `
-    <p>${cfg.text}</p>
-    ${cfg.options.map((opt, i) => `<button data-idx="${i}">${opt.label}</button>`).join("")}
-  `;
   popup.style.display = "block";
 
-  const log = (msg) => {
-    const div = document.createElement("div");
-    div.textContent = msg;
-    logContainer.appendChild(div);
-    logContainer.scrollTop = logContainer.scrollHeight;
+  const finish = () => {
+    popup.style.display = "none";
+    onUpdate && onUpdate();
+    afterPopup && afterPopup(); // ← рух монстрів і решта логіки під кінець ходу
   };
 
-  const buttons = popup.querySelectorAll("button");
-  buttons.forEach(btn => {
-    btn.addEventListener("click", () => {
-      const idx = parseInt(btn.dataset.idx, 10);
-      const opt = cfg.options[idx];
-      if (opt?.effect) {
-        opt.effect({ stats, log, playerPositionRef, numRows, numCols });
-      }
-      popup.style.display = "none";
-      popup.dataset.shown = String(t);
-      onUpdate?.();
-    }, { once: true });
-  });
+  const btns = popup.querySelectorAll("button");
+  // приклад логіки для 5/10/15 ходу — залиш як є у твоєму файлі
+  btns[0].addEventListener("click", () => { /* ... */ finish(); }, { once: true });
+  btns[1].addEventListener("click", () => { /* ... */ finish(); }, { once: true });
+  btns[2].addEventListener("click", () => { /* ... */ finish(); }, { once: true });
 }
+
+// popupQuestion.js (фрагмент з кінця файлу)
 
 // helpers
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
@@ -90,12 +86,23 @@ function addAll(stats, delta) {
   stats.attack = clamp(stats.attack + delta, 0, stats.attackMax);
 }
 function moveToRandomCorner(playerPositionRef, numRows, numCols) {
-  const corners = [
-    0,
-    numCols - 1,
-    (numRows - 1) * numCols,
-    numRows * numCols - 1
-  ];
+  // fallback, якщо параметр не передали
+  if (!playerPositionRef) {
+    playerPositionRef = window.playerPositionRef;
+  }
+
+  if (!playerPositionRef || typeof playerPositionRef.value !== "number") {
+    console.warn("moveToRandomCorner: playerPositionRef is missing or invalid");
+    return;
+  }
+  if (!numRows || !numCols) {
+    console.warn("moveToRandomCorner: grid size missing");
+    return;
+  }
+
+  const corners = [0, numCols - 1, (numRows - 1) * numCols, numRows * numCols - 1];
   const pick = corners[Math.floor(Math.random() * corners.length)];
   playerPositionRef.value = pick;
 }
+
+
