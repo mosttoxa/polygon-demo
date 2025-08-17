@@ -1,10 +1,7 @@
 // eventHandlers.js
-import { renderField, logEvent, setVisible } from "./fieldRenderer.js";
-import { updateStats } from "./playerStats.js";
+import { logEvent } from "./fieldRenderer.js";
+import { updateStats, randomStatKey } from "./playerStats.js";
 import { resolveCombat } from "./combat.js";
-import { randomStatKey } from "./playerStats.js"; // ✅ звідси беремо randomStatKey
-import { computeFov } from "./fov.js";
-
 
 export function createHandleCellClick({
   numCols,
@@ -15,26 +12,26 @@ export function createHandleCellClick({
   eventCells,
   portalCells,
   playerPositionRef,
-  renderContext,     // { numRows, numCols, gameFieldElement }
-  discoveredCells,   // Set (необов'язково)
-  visibleCellsRef,   // { value: Set } (необов'язково)
-  setVisible: _ignoredSetVisible, // залишаємо у сигнатурі для сумісності, але не використовуємо
+  renderContext,   // { numRows, numCols, gameFieldElement } — беремо тільки numRows/numCols
   logContainer
 }) {
   return function handleCellClick(target) {
-    const rowDiff = Math.abs(Math.floor(target / numCols) - Math.floor(playerPositionRef.value / numCols));
-    const colDiff = Math.abs((target % numCols) - (playerPositionRef.value % numCols));
+    const cur = playerPositionRef.value;
+    const rowDiff = Math.abs(Math.floor(target / numCols) - Math.floor(cur / numCols));
+    const colDiff = Math.abs((target % numCols) - (cur % numCols));
+
+    // рух лише на 1 по Манхеттену та якщо є очки ходу
     if (rowDiff + colDiff !== 1 || stats.move <= 0) return;
 
-    // рух
+    // 1) РУХ
     playerPositionRef.value = target;
     stats.move--;
     logEvent(`Біон перемістився на поле ${target}`, logContainer);
 
-    // події/бонуси
+    // 2) ПОДІЇ / БОНУСИ / ЖОВТІ / ПОРТАЛ
     if (eventCells.has(target)) {
       const ev = eventCells.get(target);
-      ev(); // має власний лог/ефекти
+      try { ev?.(); } catch (e) { console.warn("event error:", e); }
       eventCells.delete(target);
     } else if (bonusCells.has(target)) {
       const key = randomStatKey();
@@ -48,14 +45,15 @@ export function createHandleCellClick({
       yellowCells.delete(target);
       logEvent(`Біон отримав ${delta > 0 ? "+2" : "-2"} до ${key}`, logContainer);
     } else if (portalCells.has(target)) {
+      // телепорт у випадкову клітинку
+      const total = (renderContext?.numRows ?? 0) * (renderContext?.numCols ?? numCols);
       let newIndex;
-      const total = renderContext.numRows * renderContext.numCols;
       do { newIndex = Math.floor(Math.random() * total); } while (newIndex === target);
       playerPositionRef.value = newIndex;
       logEvent(`Енергетичний прокол переніс біона на поле ${newIndex}`, logContainer);
     }
 
-    // бій (після можливого порталу)
+    // 3) БІЙ (після можливого телепорту)
     monstersRef.value = resolveCombat({
       playerPosition: playerPositionRef.value,
       monstersRef,
@@ -63,29 +61,8 @@ export function createHandleCellClick({
       logContainer
     });
 
-    // перерахунок видимості (FOV) та пам’яті відкритих клітин
-    const fov = computeFov(
-      playerPositionRef.value,
-      stats.visionRadius ?? 1,
-      renderContext.numRows,
-      renderContext.numCols
-    );
-    if (discoveredCells) fov.forEach(i => discoveredCells.add(i));
-    setVisible(fov); // <-- саме з fieldRenderer.js
-
-    // рендер
-    renderField({
-      gameFieldElement: renderContext.gameFieldElement,
-      numRows: renderContext.numRows,
-      numCols: renderContext.numCols,
-      monsters: monstersRef.value,
-      bonusCells,
-      yellowCells,
-      eventCells,
-      portalCells,
-      playerPosition: playerPositionRef.value
-    });
-
+    // 4) ОНОВЛЕННЯ СТАТІВ (UI)
     updateStats();
+    // ВАЖЛИВО: рендер/видимість виконує script.js через scanOnPlayerMove(..)
   };
 }

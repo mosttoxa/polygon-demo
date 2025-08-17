@@ -131,14 +131,22 @@
     </div>
 
     <div id="dice-container">
-      Кубик 1: <div id="dice1" class="dice"></div>
-      Кубик 2: <div id="dice2" class="dice"></div>
-      Кубик 3: <div id="dice3" class="dice"></div>
-      <button id="roll-button">Кинути кубики</button>
+  <div style="margin-bottom:6px; font-weight:bold;">Джерела енергії:</div>
 
-      <button id="end-turn-button">Завершити хід</button>
-      >
-    </div>
+  <!-- Місця для 6 джерел; ваш скрипт уже вміє показувати рівно стільки, скільки відкрито -->
+  <div id="dice1" class="dice"></div>
+  <div id="dice2" class="dice"></div>
+  <div id="dice3" class="dice"></div>
+  <div id="dice4" class="dice"></div>
+  <div id="dice5" class="dice"></div>
+  <div id="dice6" class="dice"></div>
+
+  <!-- Кнопка генерації енергії (ід той самий, щоб JS не міняти) -->
+  <button id="roll-button" style="margin-left:8px;">Згенерувати енергію</button>
+
+  <button id="end-turn-button">Завершити хід</button>
+</div>
+
 
     <div id="game-field"></div>
   </div>

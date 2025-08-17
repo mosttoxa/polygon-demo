@@ -1,14 +1,21 @@
 // script.js
-import { stats, updateStats } from "./playerStats.js";
+import { stats, updateStats, tryUnlockDice } from "./playerStats.js";
 import { currentDice, selectedDice, rollDice } from "./dice.js";
-import { renderField, logEvent, setVisible } from "./fieldRenderer.js";
+import { renderField } from "./fieldRenderer.js";
 import { resolveCombat } from "./combat.js";
 import { handleRightClick } from "./rightClickHandler.js";
 import { createHandleCellClick } from "./eventHandlers.js";
 import { initGame } from "./initGame.js";
 import { showQuestionIfNeeded } from "./popupQuestion.js";
 import { moveMonstersRandom } from "./monstersAI.js";
-import { computeFov } from "./fov.js";
+
+// 🔎 новий сканер
+import {
+  scanOnTurnStart,
+  scanOnPlayerMove,
+  tryRevealCell,
+  getScanBudgetLeft,
+} from "./scan.js";
 
 document.addEventListener("DOMContentLoaded", () => {
   const gameField = document.getElementById("game-field");
@@ -19,6 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Стан гри
   let diceUsed = false;
+  let currentRollCount = Math.max(1, Math.min(6, stats.maxDice || 1));
   const turnRef = { value: 1 };
   window.turnRef = turnRef;
 
@@ -31,7 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const eventCells = new Map();
   const portalCells = new Set();
 
-  // Ініціалізація поля (DOM-осередки)
+  // Створюємо DOM-клітинки один раз
   for (let i = 0; i < numRows * numCols; i++) {
     const cell = document.createElement("div");
     cell.dataset.index = i;
@@ -39,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     gameField.appendChild(cell);
   }
 
-  // Старт/рестарт гри (колбек)
+  // Старт/рестарт гри
   const restartGame = () => {
     initGame({
       gameField,
@@ -54,24 +62,24 @@ document.addEventListener("DOMContentLoaded", () => {
       turnRef
     }, logContainer);
 
-    // Порахувати FOV і відрендерити
-    const fov = computeFov(playerPositionRef.value, stats.visionRadius ?? 1, numRows, numCols);
-    setVisible(fov);
-    renderField({
-      gameFieldElement: gameField,
+    // Сканер: початок ходу + промальовка
+    scanOnTurnStart({ playerPosition: playerPositionRef.value });
+    scanOnPlayerMove({
+      playerPosition: playerPositionRef.value,
       numRows, numCols,
-      monsters: monstersRef.value,
-      bonusCells, yellowCells, eventCells, portalCells,
-      playerPosition: playerPositionRef.value
+      gameFieldElement: gameField,
+      monstersRef, bonusCells, yellowCells, eventCells, portalCells
     });
 
+    // Кидок джерел на перший хід уже відбувається всередині initGame → оновимо лічильник
+    currentRollCount = Math.max(1, Math.min(6, stats.maxDice || 1));
     updateStats(turnRef.value);
   };
 
   // Перший запуск
   restartGame();
 
-  // Обробник кліку по клітинці
+  // Обробник кліку з логікою руху (із eventHandlers.js)
   const handleCellClick = createHandleCellClick({
     numCols,
     stats,
@@ -87,56 +95,93 @@ document.addEventListener("DOMContentLoaded", () => {
       gameFieldElement: gameField
     },
     logContainer
-    // discoveredCells / visibleCellsRef не передаємо — використовуємо setVisible з fieldRenderer
   });
 
-  // Навішуємо слухачі кліків/правого кліку (тепер, коли DOM-клітинки створені)
+  // Навішуємо слухачі на клітинки
   gameField.querySelectorAll(".cell").forEach(cell => {
     const i = Number(cell.dataset.index);
-    cell.addEventListener("click", () => handleCellClick(i));
+
+    cell.addEventListener("click", (e) => {
+      // Shift+клік = спроба відкрити сусідню клітинку сканером (без руху)
+      if (e.shiftKey) {
+        tryRevealCell(i, {
+          playerPosition: playerPositionRef.value,
+          numRows, numCols,
+          gameFieldElement: gameField,
+          monstersRef, bonusCells, yellowCells, eventCells, portalCells,
+          logContainer
+        });
+        return;
+      }
+
+      // Звичайний клік = рух (як і було). Після руху — оновлюємо сканер.
+      handleCellClick(i);
+
+      scanOnPlayerMove({
+        playerPosition: playerPositionRef.value,
+        numRows, numCols,
+        gameFieldElement: gameField,
+        monstersRef, bonusCells, yellowCells, eventCells, portalCells
+      });
+    });
+
     cell.addEventListener("contextmenu", (e) => handleRightClick(e, i, monstersRef.value));
   });
 
-  // Розподіл значень кубиків з клавіатури
+  // Розподіл значень джерел з клавіатури
   document.addEventListener("keydown", e => {
     const map = { m: "move", a: "attack", e: "energy" };
     const target = map[e.key];
     if (!target) return;
+
     const idx = selectedDice.findIndex(v => !v);
-    if (idx === -1) return;
+    if (idx === -1) return; // усі вже використані
+
     const value = currentDice[idx];
+
     if (target === "energy") {
       stats.energy = Math.min(stats.energyMax, stats.energy + value);
+      tryUnlockDice(logContainer); // може розблокувати 2й/3й... слот
     } else {
       stats[target] += value;
     }
+
     selectedDice[idx] = true;
     const dieEl = document.getElementById(`dice${idx + 1}`);
     if (dieEl) dieEl.classList.add("selected-dice");
-    if (selectedDice.filter(v => v).length >= 2) diceUsed = true;
+
+    const usedCount = selectedDice.filter(Boolean).length;
+    if (usedCount >= currentRollCount) {
+      diceUsed = true;
+    }
+
     updateStats(turnRef.value);
   });
 
-  // Кнопка: кинути кубики
+  // Кнопка: кинути джерела
   document.getElementById("roll-button").addEventListener("click", () => {
     rollDice(logContainer);
+    currentRollCount = Math.max(1, Math.min(6, stats.maxDice || 1));
   });
 
   // Логіка кінця ходу
   function endTurn() {
-    if (!diceUsed) return alert("Розподіліть 2 кубики!");
+    const usedCount = selectedDice.filter(Boolean).length;
+    if (usedCount < currentRollCount) {
+      return alert(`Використай ${currentRollCount} значення(нь) джерел перед завершенням ходу.`);
+    }
 
-    // Переходимо на наступний хід
+    // Наступний хід
     turnRef.value++;
     const tc = document.getElementById("turn-counter");
     if (tc) tc.textContent = turnRef.value;
 
-    // Скидаємо стан кубиків
+    // Скидання стану вибраних значень
     diceUsed = false;
-    selectedDice[0] = selectedDice[1] = selectedDice[2] = false;
+    selectedDice.fill(false);
     document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
 
-    // Питання по ходу (може змінити стати/позицію)
+    // Запитання на певних ходах
     showQuestionIfNeeded({
       turnRef,
       stats,
@@ -145,23 +190,23 @@ document.addEventListener("DOMContentLoaded", () => {
       numRows,
       numCols,
       onUpdate: () => {
-        // миттєвий апдейт під час попапа
+        // Оновлюємо UI і видимість без зміни позиції
         updateStats(turnRef.value);
-        const fov = computeFov(playerPositionRef.value, stats.visionRadius ?? 1, numRows, numCols);
-        setVisible(fov);
-        renderField({
-          gameFieldElement: gameField,
+        scanOnPlayerMove({
+          playerPosition: playerPositionRef.value,
           numRows, numCols,
-          monsters: monstersRef.value,
-          bonusCells, yellowCells, eventCells, portalCells,
-          playerPosition: playerPositionRef.value
+          gameFieldElement: gameField,
+          monstersRef, bonusCells, yellowCells, eventCells, portalCells
         });
       },
       afterPopup: () => {
-        // 1) Рух монстрів
+        // Початок нового ходу для сканера (скидаємо бюджет)
+        scanOnTurnStart({ playerPosition: playerPositionRef.value });
+
+        // Рух монстрів
         moveMonstersRandom({ monstersRef, numRows, numCols, playerPositionRef });
 
-        // 2) Бій
+        // Бій після руху монстрів
         resolveCombat({
           playerPosition: playerPositionRef.value,
           monstersRef,
@@ -169,21 +214,19 @@ document.addEventListener("DOMContentLoaded", () => {
           logContainer
         });
 
-        // 3) FOV + рендер
-        const fov = computeFov(playerPositionRef.value, stats.visionRadius ?? 1, numRows, numCols);
-        setVisible(fov);
-        renderField({
-          gameFieldElement: gameField,
+        // Оновлення сканеру і рендера (позиція могла змінитися під час подій)
+        scanOnPlayerMove({
+          playerPosition: playerPositionRef.value,
           numRows, numCols,
-          monsters: monstersRef.value,
-          bonusCells, yellowCells, eventCells, portalCells,
-          playerPosition: playerPositionRef.value
+          gameFieldElement: gameField,
+          monstersRef, bonusCells, yellowCells, eventCells, portalCells
         });
 
-        // 4) Підготувати кубики на новий хід
+        // Підготувати джерела на новий хід
         rollDice(logContainer);
+        currentRollCount = Math.max(1, Math.min(6, stats.maxDice || 1));
 
-        // 5) Оновити стати
+        // Оновити стати
         updateStats(turnRef.value);
       }
     });
@@ -193,4 +236,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("end-turn-button").addEventListener("click", () => {
     endTurn();
   });
+
+  // (Додатково, опційно) — можна відобразити ліміт скану в журналі:
+  // import("./fieldRenderer.js").then(m => m.logEvent(`[SCAN] Доступно відкриттів: ${getScanBudgetLeft()}`, logContainer));
 });
