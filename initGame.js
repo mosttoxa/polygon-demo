@@ -1,14 +1,13 @@
 // initGame.js
-
 import { generateEntities } from "./entityGenerator.js";
 import { renderField } from "./fieldRenderer.js";
 import { rollDice, selectedDice } from "./dice.js";
 import { updateStats } from "./playerStats.js";
 
 export function initGame({
+  gameField,          // ✅ передаємо DOM-елемент поля
   numRows,
   numCols,
-  gameFieldElement,
   playerPositionRef,
   monstersRef,
   bonusCells,
@@ -17,49 +16,47 @@ export function initGame({
   portalCells,
   turnRef
 }, logContainer) {
-  // Скидання лічильника ходу
-  
-  //document.getElementById("turn-counter").textContent = turnRef.value;
 
-  // Центруємо гравця
+  // (необов'язково) скинути лічильник ходу
+  if (turnRef) {
+    turnRef.value = 1;
+    const tc = document.getElementById("turn-counter");
+    if (tc) tc.textContent = turnRef.value;
+  }
+
+  // поставити гравця в центр
   playerPositionRef.value = Math.floor((numRows * numCols) / 2);
 
-  // Очищення та генерація нових сутностей
-  const { monsters, bonusCells: b, yellowCells: y, eventCells: e, portalCells: p } =
-    generateEntities(numRows, numCols, playerPositionRef.value, {
-      bonusCells,
-      yellowCells,
-      eventCells,
-      portalCells
-    }, logContainer);
-
-  // Запис нових монстрів
-  monstersRef.value = monsters;
-
-  // Скидання кубиків
-  selectedDice[0] = false;
-  selectedDice[1] = false;
-  selectedDice[2] = false;
-  document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
-
-  // Новий кидок
-  rollDice(logContainer);
-
-  // Візуалізація поля
-  renderField({
-    gameFieldElement,
+  // згенерувати сутності (мутує передані Set/Map, і ще повертає посилання)
+  const result = generateEntities(
     numRows,
     numCols,
-    monsters,
-    bonusCells: b,
-    yellowCells: y,
-    eventCells: e,
-    portalCells: p,
-    playerPosition: playerPositionRef.value,
-    turnRef,         // ✅ Додано
+    playerPositionRef.value,
+    { bonusCells, yellowCells, eventCells, portalCells },
     logContainer
+  );
+
+  // записати монстрів (маси́в)
+  monstersRef.value = result.monsters;
+
+  // скинути вибір кубиків у UI
+  selectedDice[0] = selectedDice[1] = selectedDice[2] = false;
+  document.querySelectorAll(".selected-dice").forEach(el => el.classList.remove("selected-dice"));
+
+  // кинути кубики та намалювати поле
+  rollDice();
+
+  renderField({
+    gameFieldElement: gameField,     // ✅ більше НІЯКОГО renderContext тут
+    numRows,
+    numCols,
+    monsters: monstersRef.value,
+    bonusCells: result.bonusCells,
+    yellowCells: result.yellowCells,
+    eventCells: result.eventCells,
+    portalCells: result.portalCells,
+    playerPosition: playerPositionRef.value
   });
 
-  // Оновлення статистики
-  updateStats();
+  updateStats(turnRef?.value);
 }

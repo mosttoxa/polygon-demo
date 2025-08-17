@@ -1,4 +1,4 @@
-export function logEvent(text, logContainer) {
+/*export function logEvent(text, logContainer) {
     const line = document.createElement("div");
     line.textContent = text;
     logContainer.appendChild(line);

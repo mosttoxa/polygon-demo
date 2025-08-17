@@ -1,14 +1,13 @@
 // popupQuestion.js
+import { logEvent } from "./fieldRenderer.js";
 
-// Які ходи показувати й що роблять відповіді
-// (2 — наш тестовий, можеш прибрати його з об’єкта, коли не буде потрібен)
 const QUESTION_CONFIG = {
-  2:  { // dev-тест
+  2: {
     text: "Ну як тобі на полігоні, біончику? Подобається?",
     options: [
       { label: "Так",  effect: ({stats, log}) => { stats.energy = clamp(stats.energy + 1, 0, stats.energyMax); log("Ти відповів: Так! +1 до енергії"); } },
       { label: "Ні",   effect: ({stats, log}) => { stats.attack = clamp(stats.attack + 1, 0, stats.attackMax); log("Ти відповів: Ні! +1 до атаки"); } },
-      { label: "Не хочу відповідати", effect: ({stats, log}) => { stats.move   = clamp(stats.move + 1, 0, stats.moveMax);  log("Ти відповів: Не хочу відповідати. +1 до ходу"); } },
+      { label: "Не хочу відповідати", effect: ({stats, log}) => { stats.move = clamp(stats.move + 1, 0, stats.moveMax); log("Ти відповів: Не хочу відповідати. +1 до ходу"); } },
     ]
   },
   5: {
@@ -41,7 +40,8 @@ const QUESTION_CONFIG = {
   }
 };
 
-// показати попап, якщо для цього ходу є конфіг і його ще не показували
+const shownTurns = new Set();
+
 export function showQuestionIfNeeded({
   turnRef,
   stats,
@@ -49,34 +49,71 @@ export function showQuestionIfNeeded({
   playerPositionRef,
   numRows,
   numCols,
-  onUpdate,     // існуючий колбек для миттєвого UI-апдейту
-  afterPopup    // НОВО: те, що треба зробити після попапа (рух монстрів тощо)
+  onUpdate,
+  afterPopup
 }) {
+  const turn = Number(turnRef?.value ?? 0);
   const popup = document.getElementById("popup-question");
-  const needPopup = (turnRef?.value === 5 || turnRef?.value === 10 || turnRef?.value === 15);
+  const config = QUESTION_CONFIG[turn];
 
-  if (!popup || !needPopup) {
-    // попапа немає — одразу продовжуємо цикл ходу
+  // ДІАГНОСТИЧНИЙ ЛОГ: бачимо хід і наявність конфіга/попапа
+  logEvent(`[Q] turn=${turn}, hasConfig=${!!config}, hasPopup=${!!popup}`, logContainer);
+
+  if (!popup || !config) {
     afterPopup && afterPopup();
     return;
   }
 
+  if (shownTurns.has(turn)) {
+    logEvent(`[Q] turn=${turn} вже показували, пропускаю`, logContainer);
+    afterPopup && afterPopup();
+    return;
+  }
+  shownTurns.add(turn);
+
+  // Готуємо попап
   popup.style.display = "block";
+  popup.style.zIndex = "1000";
+  popup.dataset.shown = "true";
 
-  const finish = () => {
-    popup.style.display = "none";
-    onUpdate && onUpdate();
-    afterPopup && afterPopup(); // ← рух монстрів і решта логіки під кінець ходу
-  };
+  // Гарантуємо наявність <p> з текстом
+  let question = popup.querySelector("p");
+  if (!question) {
+    question = document.createElement("p");
+    popup.prepend(question);
+  }
+  question.textContent = config.text;
 
-  const btns = popup.querySelectorAll("button");
-  // приклад логіки для 5/10/15 ходу — залиш як є у твоєму файлі
-  btns[0].addEventListener("click", () => { /* ... */ finish(); }, { once: true });
-  btns[1].addEventListener("click", () => { /* ... */ finish(); }, { once: true });
-  btns[2].addEventListener("click", () => { /* ... */ finish(); }, { once: true });
+  // Прибираємо старі кнопки та створюємо нові
+  popup.querySelectorAll("button").forEach(btn => btn.remove());
+  const buttons = [];
+  for (let i = 0; i < 3; i++) {
+    const b = document.createElement("button");
+    popup.appendChild(b);
+    buttons.push(b);
+  }
+
+  const log = (msg) => logEvent(msg, logContainer);
+
+  // Навішуємо обробники на кнопки
+  config.options.forEach((opt, i) => {
+    const btn = buttons[i];
+    if (!btn) return;
+    btn.textContent = opt.label;
+    btn.addEventListener("click", () => {
+      opt.effect({ stats, log, playerPositionRef, numRows, numCols });
+      popup.style.display = "none";
+      onUpdate && onUpdate();
+      afterPopup && afterPopup();
+    }, { once: true });
+  });
+
+  logEvent(`[Q] Popup shown for turn=${turn}`, logContainer);
 }
 
-// popupQuestion.js (фрагмент з кінця файлу)
+export function resetQuestions() {
+  shownTurns.clear();
+}
 
 // helpers
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
@@ -86,23 +123,8 @@ function addAll(stats, delta) {
   stats.attack = clamp(stats.attack + delta, 0, stats.attackMax);
 }
 function moveToRandomCorner(playerPositionRef, numRows, numCols) {
-  // fallback, якщо параметр не передали
-  if (!playerPositionRef) {
-    playerPositionRef = window.playerPositionRef;
-  }
-
-  if (!playerPositionRef || typeof playerPositionRef.value !== "number") {
-    console.warn("moveToRandomCorner: playerPositionRef is missing or invalid");
-    return;
-  }
-  if (!numRows || !numCols) {
-    console.warn("moveToRandomCorner: grid size missing");
-    return;
-  }
-
+  if (!playerPositionRef || typeof playerPositionRef.value !== "number") return;
   const corners = [0, numCols - 1, (numRows - 1) * numCols, numRows * numCols - 1];
   const pick = corners[Math.floor(Math.random() * corners.length)];
   playerPositionRef.value = pick;
 }
-
-

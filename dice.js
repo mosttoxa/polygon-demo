@@ -6,6 +6,10 @@ export let currentDice = [0, 0, 0];
 export let selectedDice = [false, false, false];
 
 export function rollDice(logContainer) {
+  
+  // якщо не передали — спробуємо знайти в DOM
+  logContainer = logContainer ?? document.getElementById("combat-log");
+
   for (let i = 0; i < 3; i++) {
     currentDice[i] = Math.floor(Math.random() * 6) + 1;
     const el = document.getElementById(`dice${i + 1}`);
