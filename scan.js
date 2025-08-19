@@ -103,8 +103,12 @@ function applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldE
 }
 
 // утиліта перевірки ортогональної суміжності
+// утиліта перевірки 8-суміжності (включно з діагоналями)
 function isAdjacent(a, b, numCols) {
   const ar = Math.floor(a / numCols), ac = a % numCols;
   const br = Math.floor(b / numCols), bc = b % numCols;
-  return (Math.abs(ar - br) + Math.abs(ac - bc)) === 1;
+  const dr = Math.abs(ar - br), dc = Math.abs(ac - bc);
+  // сусідня, якщо відстань за Чебишевим = 1 (і це не та сама клітинка)
+  return (dr !== 0 || dc !== 0) && Math.max(dr, dc) === 1;
 }
+

@@ -19,17 +19,18 @@ export function generateEntities(numRows, numCols, playerPosition, {
   const totalCells = numRows * numCols;
 
   for (let i = 0; i < 10; i++) {
-    let index;
-    do {
-      index = Math.floor(Math.random() * totalCells);
-    } while (index === playerPosition);
-    monsters.push({
-  pos: index,
-  hp: 10,
-  damage: 3,
-  speed: Math.random() < 0.6 ? 1 : 2   // 60% = 1 крок, 40% = 2 кроки
-});
-  }
+  let index;
+  do {
+    index = Math.floor(Math.random() * totalCells);
+  } while (index === playerPosition);
+  monsters.push({
+    pos: index,
+    hp: 10,
+    damage: 3,
+    speed: Math.random() < 0.6 ? 1 : 2,   // 60% = 1 крок, 40% = 2 кроки
+    aggroRange: 3 + Math.floor(Math.random() * 3) // 3..5 клітинок за Чебишевим
+  });
+}
 
   for (let i = 0; i < 10; i++) {
     let index;

@@ -7,7 +7,7 @@ import { handleRightClick } from "./rightClickHandler.js";
 import { createHandleCellClick } from "./eventHandlers.js";
 import { initGame } from "./initGame.js";
 import { showQuestionIfNeeded } from "./popupQuestion.js";
-import { moveMonstersRandom } from "./monstersAI.js";
+import { moveMonstersHunt } from "./monstersAI.js";
 
 // 🔎 новий сканер
 import {
@@ -204,7 +204,36 @@ document.addEventListener("DOMContentLoaded", () => {
         scanOnTurnStart({ playerPosition: playerPositionRef.value });
 
         // Рух монстрів
-        moveMonstersRandom({ monstersRef, numRows, numCols, playerPositionRef });
+        moveMonstersHunt({ monstersRef, numRows, numCols, playerPositionRef });
+
+        // --- автопрокачка монстрів ---
+const TURN = turnRef.value;
+// Параметри можна згодом винести в конфіг:
+const GROW_HP_EVERY = 4;    // кожні 4 ходи
+const GROW_DMG_EVERY = 6;   // кожні 6 ходів
+const HP_DELTA = 1;
+const DMG_DELTA = 1;
+
+let grew = false;
+if (TURN % GROW_HP_EVERY === 0) {
+  for (const m of monstersRef.value) m.hp += HP_DELTA;
+  grew = true;
+}
+if (TURN % GROW_DMG_EVERY === 0) {
+  for (const m of monstersRef.value) m.damage += DMG_DELTA;
+  grew = true;
+}
+if (grew) {
+  // додай лог, якщо є контейнер
+  const line = document.createElement("div");
+  line.textContent = `Монстри посилилися: +${TURN % GROW_HP_EVERY === 0 ? HP_DELTA + " HP " : ""}${TURN % GROW_DMG_EVERY === 0 ? "+ " + DMG_DELTA + " DMG" : ""}`.trim();
+  const logContainer = document.getElementById("combat-log");
+  if (logContainer) {
+    logContainer.appendChild(line);
+    logContainer.scrollTop = logContainer.scrollHeight;
+  }
+}
+
 
         // Бій після руху монстрів
         resolveCombat({
