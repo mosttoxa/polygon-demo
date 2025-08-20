@@ -1,7 +1,7 @@
 // script.js
 import { stats, updateStats, tryUnlockDice } from "./playerStats.js";
 import { currentDice, selectedDice, rollDice } from "./dice.js";
-import { renderField } from "./fieldRenderer.js";
+import { renderField, logEvent } from "./fieldRenderer.js";
 import { resolveCombat } from "./combat.js";
 import { handleRightClick } from "./rightClickHandler.js";
 import { createHandleCellClick } from "./eventHandlers.js";
@@ -15,6 +15,8 @@ import {
   scanOnPlayerMove,
   tryRevealCell,
   getScanBudgetLeft,
+  toggleRevealAll,
+  isRevealAll,
 } from "./scan.js";
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -157,6 +159,25 @@ document.addEventListener("DOMContentLoaded", () => {
 
     updateStats(turnRef.value);
   });
+
+  document.addEventListener("keydown", e => {
+  if (e.key.toLowerCase() === "v") {
+    toggleRevealAll();
+
+    // миттєво перерахувати видимість і перемалювати
+    scanOnPlayerMove({
+      playerPosition: playerPositionRef.value,
+      numRows, numCols,
+      gameFieldElement: gameField,
+      monstersRef, bonusCells, yellowCells, eventCells, portalCells
+    });
+
+    // невеличкий лог, щоб було видно стан
+    const mode = isRevealAll() ? "УВІМКНЕНО" : "ВИМКНЕНО";
+    logEvent(`[DEBUG] Повна видимість: ${mode}`, logContainer);
+  }
+});
+
 
   // Кнопка: кинути джерела
   document.getElementById("roll-button").addEventListener("click", () => {

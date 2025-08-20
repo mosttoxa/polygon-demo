@@ -86,12 +86,22 @@ export function resetRevealed() {
   lastPlayerPos = null;
 }
 
+let REVEAL_ALL = false;
+export function setRevealAll(on) { REVEAL_ALL = !!on; }
+export function toggleRevealAll() { REVEAL_ALL = !REVEAL_ALL; }
+export function isRevealAll() { return REVEAL_ALL; }
+
+
 // внутрішнє: застосувати видимість та перемалювати поле
 function applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells }) {
-  // формуємо видиме як сукупність відкритих + поточна позиція гравця
-  const visible = new Set(REVEALED);
-  if (typeof playerPosition === "number") visible.add(playerPosition);
-  setVisible(visible);
+  if (REVEAL_ALL) {
+    // null => fieldRenderer НЕ накладає fog (див. перевірку VISIBLE && !VISIBLE.has)
+    setVisible(null);
+  } else {
+    const visible = new Set(REVEALED);
+    if (typeof playerPosition === "number") visible.add(playerPosition);
+    setVisible(visible);
+  }
 
   renderField({
     gameFieldElement,
@@ -101,6 +111,7 @@ function applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldE
     playerPosition
   });
 }
+
 
 // утиліта перевірки ортогональної суміжності
 // утиліта перевірки 8-суміжності (включно з діагоналями)

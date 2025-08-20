@@ -80,6 +80,23 @@ body {
   z-index: 1000;
 }
 
+#rules-panel {
+  background: #222;
+  color: #ddd;
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+#rules-panel h3 {
+  margin-top: 0;
+  font-size: 16px;
+  color: #ffd700;
+}
+
+
 .damage-popup {
   position: absolute;
   font-weight: bold;
