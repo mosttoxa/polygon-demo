@@ -37,12 +37,12 @@ export function scanOnTurnStart({ playerPosition }) {
 }
 
 // викликати після кожного руху гравця
-export function scanOnPlayerMove({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells }) {
+export function scanOnPlayerMove({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells }) {
   if (typeof playerPosition === "number") {
     REVEALED.add(playerPosition);
     lastPlayerPos = playerPosition;
     // оновимо видимість: весь світ = те, що відкрито
-    applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells });
+    applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells });
   }
 }
 
@@ -52,7 +52,7 @@ export function tryRevealCell(index, {
   playerPosition,
   numRows, numCols,
   gameFieldElement,
-  monstersRef, bonusCells, yellowCells, eventCells, portalCells,
+  monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells,
   logContainer
 }) {
   // тільки ортогональні сусіди (Манхеттен)
@@ -72,7 +72,7 @@ export function tryRevealCell(index, {
   if (logContainer) logEvent(`Сканер відкрив клітинку ${index}${SCAN_MODE === "spend" ? ` (-${SPEND_COST}⚡)` : ""}`, logContainer);
 
   // оновлюємо видимість і рендеримо
-  applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells });
+  applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells });
 
   // показати актуальну енергію (у режимі "spend" вона зменшилась)
   updateStats();
@@ -93,7 +93,7 @@ export function isRevealAll() { return REVEAL_ALL; }
 
 
 // внутрішнє: застосувати видимість та перемалювати поле
-function applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells }) {
+function applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldElement, monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells }) {
   if (REVEAL_ALL) {
     // null => fieldRenderer НЕ накладає fog (див. перевірку VISIBLE && !VISIBLE.has)
     setVisible(null);
@@ -108,7 +108,8 @@ function applyVisibilityAndRender({ playerPosition, numRows, numCols, gameFieldE
     numRows, numCols,
     monsters: monstersRef.value,
     bonusCells, yellowCells, eventCells, portalCells,
-    playerPosition
+    playerPosition,
+    desertCells              
   });
 }
 

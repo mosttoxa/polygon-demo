@@ -15,7 +15,8 @@ export function renderField({
   yellowCells,
   eventCells,
   portalCells,
-  playerPosition
+  playerPosition,
+  desertCells    
 }) {
   // ✅ Страховка: візьмемо з DOM, якщо не передали аргументом
   const el = gameFieldElement ?? document.getElementById("game-field");
@@ -40,6 +41,9 @@ export function renderField({
     cell.textContent = "";
 
     if (VISIBLE && !VISIBLE.has(index)) cell.classList.add("fog");
+
+    // ⬇️ нова зона
+    if (desertCells && desertCells.has(index)) cell.classList.add("desert");
 
     if (bonusCells.has(index)) cell.classList.add("bonus");
     if (yellowCells.has(index)) cell.classList.add("yellow");

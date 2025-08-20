@@ -8,6 +8,7 @@ import { createHandleCellClick } from "./eventHandlers.js";
 import { initGame } from "./initGame.js";
 import { showQuestionIfNeeded } from "./popupQuestion.js";
 import { moveMonstersHunt } from "./monstersAI.js";
+import { expandDesert } from "./desert.js";
 
 // 🔎 новий сканер
 import {
@@ -40,6 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const yellowCells = new Set();
   const eventCells = new Map();
   const portalCells = new Set();
+  const desertCells = new Set();
 
   // Створюємо DOM-клітинки один раз
   for (let i = 0; i < numRows * numCols; i++) {
@@ -61,6 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
       yellowCells,
       eventCells,
       portalCells,
+      desertCells, 
       turnRef
     }, logContainer);
 
@@ -70,7 +73,8 @@ document.addEventListener("DOMContentLoaded", () => {
       playerPosition: playerPositionRef.value,
       numRows, numCols,
       gameFieldElement: gameField,
-      monstersRef, bonusCells, yellowCells, eventCells, portalCells
+      monstersRef, bonusCells, yellowCells, eventCells, portalCells,
+      desertCells                          // ⬅️
     });
 
     // Кидок джерел на перший хід уже відбувається всередині initGame → оновимо лічильник
@@ -90,6 +94,7 @@ document.addEventListener("DOMContentLoaded", () => {
     yellowCells,
     eventCells,
     portalCells,
+    desertCells,
     playerPositionRef,
     renderContext: {
       numRows,
@@ -110,7 +115,7 @@ document.addEventListener("DOMContentLoaded", () => {
           playerPosition: playerPositionRef.value,
           numRows, numCols,
           gameFieldElement: gameField,
-          monstersRef, bonusCells, yellowCells, eventCells, portalCells,
+          monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells,
           logContainer
         });
         return;
@@ -123,7 +128,7 @@ document.addEventListener("DOMContentLoaded", () => {
         playerPosition: playerPositionRef.value,
         numRows, numCols,
         gameFieldElement: gameField,
-        monstersRef, bonusCells, yellowCells, eventCells, portalCells
+        monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells
       });
     });
 
@@ -169,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
       playerPosition: playerPositionRef.value,
       numRows, numCols,
       gameFieldElement: gameField,
-      monstersRef, bonusCells, yellowCells, eventCells, portalCells
+      monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells                      
     });
 
     // невеличкий лог, щоб було видно стан
@@ -217,7 +222,7 @@ document.addEventListener("DOMContentLoaded", () => {
           playerPosition: playerPositionRef.value,
           numRows, numCols,
           gameFieldElement: gameField,
-          monstersRef, bonusCells, yellowCells, eventCells, portalCells
+          monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells                      
         });
       },
       afterPopup: () => {
@@ -264,12 +269,17 @@ if (grew) {
           logContainer
         });
 
+        if (turnRef.value % 3 === 0) {
+          expandDesert({ desertCells, numRows, numCols, limit: 1 /*, avoid: ...*/ });
+          logEvent("Пустеля розрослась на 1 клітинку.", logContainer);
+        }
+
         // Оновлення сканеру і рендера (позиція могла змінитися під час подій)
         scanOnPlayerMove({
           playerPosition: playerPositionRef.value,
           numRows, numCols,
           gameFieldElement: gameField,
-          monstersRef, bonusCells, yellowCells, eventCells, portalCells
+          monstersRef, bonusCells, yellowCells, eventCells, portalCells, desertCells              
         });
 
         // Підготувати джерела на новий хід
